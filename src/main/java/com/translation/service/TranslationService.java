@@ -7,6 +7,7 @@ import com.translation.repository.TagRepository;
 import com.translation.repository.TranslationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -73,12 +74,15 @@ public class TranslationService {
         return translations.map(this::convertToDto);
     }
     
-    @Cacheable(value = "translations", key = "#locale")
     @Transactional(readOnly = true)
     public Map<String, String> getTranslationsForLocale(String locale) {
         List<Translation> translations = translationRepository.findByLocale(locale);
         return translations.stream()
-            .collect(Collectors.toMap(Translation::getKey, Translation::getContent));
+            .collect(Collectors.toMap(
+                Translation::getKey, 
+                Translation::getContent,
+                (existing, replacement) -> replacement
+            ));
     }
     
     public void deleteTranslation(Long id) {
